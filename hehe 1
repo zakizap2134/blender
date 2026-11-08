@@ -1,0 +1,24 @@
+import java.util.*;
+public class FCFS {
+    public static void solve(List<Process> list) {
+        List<String> log = new ArrayList<>();
+        Process cur = null;
+        for (int t = 0, done = 0; done < list.size(); t++) {
+            int now = t;
+            if (cur == null)
+                cur = list.stream().filter(p -> p.at <= now && p.rem > 0)
+                          .min(Comparator.comparingInt(p -> p.at)).orElse(null);
+            if (SchedulerHelper.tick(cur, t, log) == 1) { done++; cur = null; }
+        }
+        SchedulerHelper.print(list, "FCFS", log);
+    }
+    public static void main(String[] args) {
+        List<Process> list = Arrays.asList(
+            new Process("A", 0, 8),
+            new Process("B", 1, 4),
+            new Process("C", 2, 9),
+            new Process("D", 3, 5)
+        );
+        solve(list);
+    }
+}
