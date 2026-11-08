@@ -1,0 +1,74 @@
+import java.util.*;
+import java.util.function.*;
+
+class Process {
+    int id, at, bt, prio, rem, ct, tat, wt;
+    Process(int id, int at, int bt, int prio) {
+        this.id = id; this.at = at; this.bt = bt; this.prio = prio; this.rem = bt;
+    }
+}
+
+public class Main {
+    static int tick(Process c, int t, List<String> log) {
+        log.add(c == null ? "Idle" : "P" + c.id);
+        if (c == null || --c.rem > 0) return 0;
+        c.ct = t + 1; c.tat = c.ct - c.at; c.wt = c.tat - c.bt;
+        return 1;
+    }
+
+    static void print(List<Process> list, String title, List<String> log) {
+        String gantt = "";
+        for (int t = 0; t < log.size(); t++)
+            if (t == 0 || !log.get(t).equals(log.get(t - 1))) gantt += "(" + t + ") | " + log.get(t) + " | ";
+        int time = log.size(), n = list.size();
+        double wt = 0, tat = 0, bt = 0;
+        System.out.println("\n=== " + title + " ===\nGantt Chart: " + gantt + "(" + time + ")\nID\tAT\tBT\tPrio\tCT\tTAT\tWT");
+        for (Process p : list) {
+            bt += p.bt; tat += p.tat; wt += p.wt; p.rem = p.bt;
+            System.out.printf("P%d\t%d\t%d\t%d\t%d\t%d\t%d\n", p.id, p.at, p.bt, p.prio, p.ct, p.tat, p.wt);
+        }
+        System.out.printf("Avg WT : %.0f / %d = %.2f\nAvg TAT: %.0f / %d = %.2f\nCPU Utilization: (%.0f / %d) * 100 = %.2f%%\n",
+            wt, n, wt / n, tat, n, tat / n, bt, time, (bt / time) * 100);
+    }
+
+    static void solve(List<Process> list, String title, Predicate<Process> lock, Comparator<Process> cmp) {
+        List<String> log = new ArrayList<>();
+        Process cur = null;
+        for (int t = 0, done = 0; done < list.size(); t++) {
+            int now = t;
+            if (cur == null || !lock.test(cur))
+                cur = list.stream().filter(p -> p.at <= now && p.rem > 0)
+                          .min(cmp.thenComparingInt(p -> p.at)).orElse(null);
+            if (tick(cur, t, log) == 1) { done++; cur = null; }
+        }
+        print(list, title, log);
+    }
+
+    static void roundRobin(List<Process> list, int q) {
+        List<String> log = new ArrayList<>();
+        Queue<Process> rq = new LinkedList<>();
+        Process cur = null;
+        for (int t = 0, done = 0, qt = 0; done < list.size(); t++, qt++) {
+            for (Process p : list) if (p.at == t) rq.add(p);
+            if (cur != null && qt == q) { rq.add(cur); cur = null; }
+            if (cur == null && !rq.isEmpty()) { cur = rq.poll(); qt = 0; }
+            if (tick(cur, t, log) == 1) { done++; cur = null; }
+        }
+        print(list, "Round Robin (Q=" + q + ")", log);
+    }
+
+    public static void main(String[] args) {
+        List<Process> list = Arrays.asList(
+            new Process(1, 0, 8, 2), new Process(2, 1, 4, 1),
+            new Process(3, 2, 9, 3), new Process(4, 3, 5, 2)
+        );
+        solve(list, "FCFS", p -> true, Comparator.comparingInt(p -> p.at));
+        solve(list, "SJF (Non-Preemptive)", p -> true, Comparator.comparingInt(p -> p.bt));
+        solve(list, "SRTF", p -> false, Comparator.comparingInt(p -> p.rem));
+        solve(list, "Preemptive Priority", p -> false, Comparator.comparingInt(p -> p.prio));
+        solve(list, "Multilevel Queue (Q1: SJF, Q2: FCFS)", p -> p.prio == 1,
+            Comparator.comparingInt((Process p) -> p.prio == 1 ? 1 : 2)
+                      .thenComparingInt(p -> p.prio == 1 ? p.bt : p.at));
+        roundRobin(list, 3);
+    }
+}
