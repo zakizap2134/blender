@@ -1,0 +1,227 @@
+import java.util.*;
+
+// 1. PROCESS DATA & SHARED HELPERS
+class Process {
+    String id;
+    int at, bt, prio, rem, ct, tat, wt;
+
+    // With Priority (for Priority & Multilevel)
+    Process(String id, int at, int bt, int prio) {
+        this.id = id; this.at = at; this.bt = bt; this.prio = prio; this.rem = bt;
+    }
+    Process(int id, int at, int bt, int prio) { this("P" + id, at, bt, prio); }
+
+    // Without Priority (for FCFS, SJF, SRTF, Round Robin)
+    Process(String id, int at, int bt) { this(id, at, bt, 0); }
+    Process(int id, int at, int bt) { this("P" + id, at, bt, 0); }
+
+    // Logs 1 tick of CPU time; returns 1 if process finishes, 0 otherwise
+    static int tick(Process c, int t, List<String> log) {
+        log.add(c == null ? "Idle" : c.id);
+        if (c == null || --c.rem > 0) return 0;
+        c.ct = t + 1; c.tat = c.ct - c.at; c.wt = c.tat - c.bt;
+        return 1;
+    }
+
+    // Prints Gantt chart, table, averages, CPU utilization, and resets rem
+    static void print(List<Process> list, String title, List<String> log) {
+        String gantt = "";
+        for (int t = 0; t < log.size(); t++)
+            if (t == 0 || !log.get(t).equals(log.get(t - 1))) gantt += "(" + t + ") | " + log.get(t) + " | ";
+
+        int time = log.size(), n = list.size();
+        double wt = 0, tat = 0, bt = 0;
+        boolean hasPrio = list.stream().anyMatch(p -> p.prio != 0);
+
+        System.out.println("\n=== " + title + " ===\nGantt Chart: " + gantt + "(" + time + ")");
+        System.out.println(hasPrio ? "ID\tAT\tBT\tPrio\tCT\tTAT\tWT" : "ID\tAT\tBT\tCT\tTAT\tWT");
+
+        for (Process p : list) {
+            bt += p.bt; tat += p.tat; wt += p.wt; p.rem = p.bt; // Auto-reset rem for next algorithm
+            if (hasPrio)
+                System.out.printf("%s\t%d\t%d\t%d\t%d\t%d\t%d\n", p.id, p.at, p.bt, p.prio, p.ct, p.tat, p.wt);
+            else
+                System.out.printf("%s\t%d\t%d\t%d\t%d\t%d\n", p.id, p.at, p.bt, p.ct, p.tat, p.wt);
+        }
+        System.out.printf("Avg WT : %.0f / %d = %.2f\nAvg TAT: %.0f / %d = %.2f\nCPU Utilization: (%.0f / %d) * 100 = %.2f%%\n",
+            wt, n, wt / n, tat, n, tat / n, bt, time, (bt / time) * 100);
+    }
+}
+
+// 2. FCFS CLASS
+class FCFS {
+    void solve(List<Process> list) {
+        List<String> log = new ArrayList<>();
+        Process cur = null;
+        for (int t = 0, done = 0; done < list.size(); t++) {
+            int now = t;
+            if (cur == null)
+                cur = list.stream().filter(p -> p.at <= now && p.rem > 0)
+                          .min(Comparator.comparingInt(p -> p.at)).orElse(null);
+            if (Process.tick(cur, t, log) == 1) { done++; cur = null; }
+        }
+        Process.print(list, "FCFS", log);
+    }
+}
+
+// 3. SJF CLASS (Non-Preemptive)
+class SJF {
+    void solve(List<Process> list) {
+        List<String> log = new ArrayList<>();
+        Process cur = null;
+        for (int t = 0, done = 0; done < list.size(); t++) {
+            int now = t;
+            if (cur == null)
+                cur = list.stream().filter(p -> p.at <= now && p.rem > 0)
+                          .min(Comparator.comparingInt((Process p) -> p.bt).thenComparingInt(p -> p.at)).orElse(null);
+            if (Process.tick(cur, t, log) == 1) { done++; cur = null; }
+        }
+        Process.print(list, "SJF (Non-Preemptive)", log);
+    }
+}
+
+// 4. SRTF CLASS (Preemptive SJF)
+class SRTF {
+    void solve(List<Process> list) {
+        List<String> log = new ArrayList<>();
+        for (int t = 0, done = 0; done < list.size(); t++) {
+            int now = t;
+            Process cur = list.stream().filter(p -> p.at <= now && p.rem > 0)
+                              .min(Comparator.comparingInt((Process p) -> p.rem).thenComparingInt(p -> p.at)).orElse(null);
+            done += Process.tick(cur, t, log);
+        }
+        Process.print(list, "SRTF (Preemptive SJF)", log);
+    }
+}
+
+// 5. NON-PREEMPTIVE PRIORITY CLASS
+class PriorityNonPreemptive {
+    void solve(List<Process> list) {
+        List<String> log = new ArrayList<>();
+        Process cur = null;
+        for (int t = 0, done = 0; done < list.size(); t++) {
+            int now = t;
+            if (cur == null)
+                cur = list.stream().filter(p -> p.at <= now && p.rem > 0)
+                          .min(Comparator.comparingInt((Process p) -> p.prio).thenComparingInt(p -> p.at)).orElse(null);
+            if (Process.tick(cur, t, log) == 1) { done++; cur = null; }
+        }
+        Process.print(list, "Non-Preemptive Priority", log);
+    }
+}
+
+// 6. PREEMPTIVE PRIORITY CLASS
+class PriorityPreemptive {
+    void solve(List<Process> list) {
+        List<String> log = new ArrayList<>();
+        for (int t = 0, done = 0; done < list.size(); t++) {
+            int now = t;
+            Process cur = list.stream().filter(p -> p.at <= now && p.rem > 0)
+                              .min(Comparator.comparingInt((Process p) -> p.prio).thenComparingInt(p -> p.at)).orElse(null);
+            done += Process.tick(cur, t, log);
+        }
+        Process.print(list, "Preemptive Priority", log);
+    }
+}
+
+// 7. ROUND ROBIN CLASS
+class RoundRobin {
+    void solve(List<Process> list, int q) {
+        List<String> log = new ArrayList<>();
+        Queue<Process> rq = new LinkedList<>();
+        Process cur = null;
+        for (int t = 0, done = 0, qt = 0; done < list.size(); t++, qt++) {
+            for (Process p : list) if (p.at == t) rq.add(p);
+            if (cur != null && qt == q) { rq.add(cur); cur = null; }
+            if (cur == null && !rq.isEmpty()) { cur = rq.poll(); qt = 0; }
+            if (Process.tick(cur, t, log) == 1) { done++; cur = null; }
+        }
+        Process.print(list, "Round Robin (Q=" + q + ")", log);
+    }
+}
+
+// 8. MULTILEVEL QUEUE CLASS (Q1: RR, Q2: SRTF, Q3: Priority, Q4: SJF, Q5: FCFS)
+class Multilevel {
+    void solve(List<Process> list, int q) {
+        List<String> log = new ArrayList<>();
+        Queue<Process> q1 = new LinkedList<>();
+        Process cur = null;
+
+        for (int t = 0, done = 0, qt = 0; done < list.size(); t++) {
+            int now = t;
+
+            // 1. Add arrivals to Queue 1 (prio 1)
+            for (Process p : list) if (p.at == t && p.prio == 1) q1.add(p);
+
+            // RR time slice expiration
+            if (cur != null && cur.prio == 1 && qt == q) { q1.add(cur); cur = null; }
+
+            // Inter-queue Preemption: higher queue preempts lower queue
+            int curPrio = (cur == null) ? Integer.MAX_VALUE : cur.prio;
+            boolean higherReady = (!q1.isEmpty() && curPrio > 1)
+                || list.stream().anyMatch(p -> p.at <= now && p.rem > 0 && p.prio < curPrio);
+            if (higherReady) cur = null;
+
+            // Intra-queue Preemption for Queue 2 (SRTF): shorter remaining time preempts current Q2 process
+            if (cur != null && cur.prio == 2) {
+                boolean shorterQ2 = list.stream().anyMatch(p -> p.at <= now && p.rem > 0 && p.prio == 2 && p.rem < cur.rem);
+                if (shorterQ2) cur = null;
+            }
+
+            // 2. Queue Selection by Level (Q1 -> Q2 -> Q3 -> Q4 -> Q5)
+            if (cur == null) {
+                if (!q1.isEmpty()) {
+                    cur = q1.poll();
+                    qt = 0;
+                } else {
+                    // Queue 2 (prio 2): SRTF (Shortest Remaining Time)
+                    cur = list.stream().filter(p -> p.at <= now && p.rem > 0 && p.prio == 2)
+                              .min(Comparator.comparingInt((Process p) -> p.rem).thenComparingInt(p -> p.at)).orElse(null);
+
+                    // Queue 3 (prio 3): Priority Scheduling
+                    if (cur == null)
+                        cur = list.stream().filter(p -> p.at <= now && p.rem > 0 && p.prio == 3)
+                                  .min(Comparator.comparingInt((Process p) -> p.at)).orElse(null);
+
+                    // Queue 4 (prio 4): SJF (Shortest Burst Time)
+                    if (cur == null)
+                        cur = list.stream().filter(p -> p.at <= now && p.rem > 0 && p.prio == 4)
+                                  .min(Comparator.comparingInt((Process p) -> p.bt).thenComparingInt(p -> p.at)).orElse(null);
+
+                    // Queue 5 (prio >= 5): FCFS (First-Come First-Served)
+                    if (cur == null)
+                        cur = list.stream().filter(p -> p.at <= now && p.rem > 0 && p.prio >= 5)
+                                  .min(Comparator.comparingInt(p -> p.at)).orElse(null);
+                }
+            }
+
+            if (cur != null && cur.prio == 1) qt++;
+            if (Process.tick(cur, t, log) == 1) { done++; cur = null; }
+        }
+        Process.print(list, "Multilevel Queue (Q1: RR[Q=" + q + "], Q2: SRTF, Q3: Prio, Q4: SJF, Q5: FCFS)", log);
+    }
+}
+
+// 9. MAIN CLASS (NO SCANNER - HARDCODED PROCESSES)
+public class Main {
+    public static void main(String[] args) {
+        // Define your processes directly here:
+        List<Process> list = Arrays.asList(
+            new Process("A",  0, 8, 3), // (ID, AT, BT, Prio)
+            new Process("B",  1, 4, 1),
+            new Process(3,    2, 9, 4), // number ID automatically displays as "P3"
+            new Process("P4", 3, 5, 2)
+        );
+
+        int q = 3; // Quantum for Round Robin
+
+        // Run any algorithm directly (just comment out any you don't need):
+        new FCFS().solve(list);
+        new SJF().solve(list);
+        new SRTF().solve(list);
+        new PriorityNonPreemptive().solve(list);
+        new PriorityPreemptive().solve(list);
+        new RoundRobin().solve(list, q);
+        new Multilevel().solve(list, 2);
+    }
+}
