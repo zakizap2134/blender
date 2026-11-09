@@ -1,0 +1,47 @@
+Here are the 2 easiest manual ways to animate a glowing light traveling through the maze from START to END in Blender (no coding).
+
+First: Create Your "Light + Glowing Orb" at START
+
+In Blender's Viewport Shading, a Point Light illuminates the stone walls around it, while a small Emissive Sphere makes the light itself visible as a glowing orb with Bloom glare. Grouping them takes 15 seconds:
+
+Add the Point Light: Press Shift + A → Light → Point.
+In Object Data Properties (green lightbulb icon on the right), pick a bright color and set Power to 200 W.
+Add the Glowing Orb: Press Shift + A → Mesh → UV Sphere, then press S, type 0.22, and press Enter.
+In Material Properties (red sphere icon), click the material dropdown icon (next to + New) and pick GlareMesh_Cyan, GlareMesh_StartGreen, or GlareMesh_EndGold so the ball glows with glare.
+Link Them Together:
+Click the Sphere, hold Shift and click the Point Light, then press Ctrl + P → Object (Keep Transform).
+Now you only need to animate the Point Light, and the glowing orb will follow it automatically!
+Method 1: The Smooth Pro Way (Curve + Follow Path Constraint)
+
+Best if you want the light to glide smoothly along a drawn line from START to END:
+
+Look from Top View: Press Numpad 7 (or click the blue +Z circle at the top-right of the 3D Viewport) so you can see the whole maze layout from above.
+Draw the Maze Route:
+Press Shift + A → Curve → Bezier, then press Tab to enter Edit Mode.
+Press A then X → Vertices to delete the default 2 points.
+Click the Draw tool on the left toolbar (the pencil/squiggle icon—press T if the toolbar is hidden).
+Simply click and drag your mouse starting at START, tracing through the open corridors around the pits all the way to END.
+Press Tab to go back to Object Mode, and move the curve slightly up (G → Z → 0.8 → Enter) so it floats inside the corridors above the floor.
+Snap the Light onto the Curve:
+Select your Point Light and press Alt + G (this resets its position to (0, 0, 0) so it snaps cleanly onto the curve without flying off to the side).
+Go to Object Constraints Properties (the blue gear-with-chain icon on the right panel).
+Click Add Object Constraint → Follow Path.
+In Target, select your BezierCurve.
+Keyframe START to END:
+Check the Fixed Position box inside the Follow Path constraint.
+At Frame 1 in the Timeline: set Offset Factor to 0.000, hover over it, and press I.
+Move the Timeline to Frame 200 (or 250): set Offset Factor to 1.000, hover over it, and press I.
+(Tip: If it moves backward from END to START, select the Curve → press Tab → press A → click Segments → Switch Direction at the top menu.)
+Press Spacebar to watch the glowing orb light up the walls as it solves the maze!
+Method 2: The Fast Beginner Way (Auto Keying Corner-by-Corner)
+
+Because a maze is made of straight corridors, you can also just drag the light turn-by-turn without using curves at all:
+
+Select your Point Light and move it (G) to the START gate at Z = 0.8.
+In the Timeline at Frame 1, press I → Location.
+Turn ON the round Record button (Auto Keying) at the bottom-center of the Timeline (next to the Play buttons).
+Switch to Top View (Numpad 7):
+Move the Timeline blue playhead to Frame 25, press G, and drag the light to the first corner of the corridor. (Blender automatically records the keyframe!)
+Move the playhead to Frame 50, press G, and drag it to the next corner.
+Repeat every 20–25 frames through the corridors until you reach END around Frame 200.
+Turn OFF the round Record button (Auto Keying) when finished so you don't accidentally record extra moves, then press Spacebar to play!
