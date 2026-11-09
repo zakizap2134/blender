@@ -1,0 +1,50 @@
+1. Flickering Torch Glow (1 Keyframe + Graph Editor Noise Modifier)
+
+Instead of keyframing every frame by hand, Blender has a procedural Noise curve modifier made for fire flicker:
+
+Select the Flames: Left-click Brazier_Flame_Glare_Meshes in the 3D Viewport.
+Open the Shader Editor: Switch to the Shading workspace (remember to click the Viewport Shading sphere + Compositor: Always if needed) or split a panel into a Shader Editor.
+Insert 1 Keyframe on Emission:
+Find the Emission node (its Strength is 7.2).
+Hover your mouse directly over the Strength number box and press I (or Right-Click → Insert Keyframe). The box will turn yellow.
+Important Tip: Keep that Emission node clicked/highlighted (white outline) so Blender shows its curve in the Graph Editor!
+Add the Flicker (Graph Editor):
+Change your bottom Timeline panel (top-left editor icon) to the Graph Editor (if you don't see Strength on the left list, click the little arrow/cursor icon "Only Show Selected" at the top header to turn that filter off).
+Click Strength in the left channel list, then press N on your keyboard to open the right sidebar and click the Modifiers tab.
+Click Add Modifier → Noise.
+Tune the Fire Flicker:
+Scale: Set to 3.5 – 5.0 (controls flicker speed; larger = smoother).
+Strength: Set to 3.5 – 4.5 (controls how much brighter/dimmer the glow jumps).
+Press Spacebar—all 10 torches and their Bloom glare will flicker continuously!
+Bonus: Select any Brazier_Warm_Fill point light, go to Object Data Properties (green lightbulb icon), press I on Power, and add the same Noise modifier so the orange light on the nearby walls flickers too.
+2. Physically Dancing 3D Flames (Wave Modifier — No Keyframes Needed!)
+
+To make the actual 3D flame cones and floating sparks wiggle like real fire:
+
+Select Brazier_Flame_Glare_Meshes in the 3D Viewport.
+Go to Modifier Properties (the blue wrench icon on the right panel).
+Click Add Modifier → Deform → Wave (or type Wave in the search bar).
+Adjust these sliders so the motion fits the small torches:
+Height: 0.07 (default 0.5 is too big—0.07 gives a nice subtle flame lick)
+Width: 0.45
+Narrowness: 1.8
+Expand Time → set Speed to 0.20
+Press Spacebar—the Wave modifier animates automatically with the timeline!
+3. Slow "Breathing" Pulse on the Glowing Maze Cracks & Crystals
+
+For magical cracks and abyss crystals, a slow breathing pulse looks great alongside the fast-flickering torches:
+
+Select the Maze (or Crystals): Click Maze_Platform in the 3D Viewport (or click Abyss_Crystal_Glare_Meshes and choose one of its color slots in the Material Properties red-sphere tab).
+Keyframe Low → High → Low in the Shader Editor:
+Frame 1: Move the blue playhead in the Timeline to 1. On the Emission node, set Strength to 2.5, hover over it, and press I.
+Frame 45: Drag the playhead to 45. Change Strength to 8.5, hover over it, and press I.
+Frame 90: Drag the playhead to 90. Change Strength back to 2.5, hover over it, and press I.
+Make It Loop Forever:
+Keep the Emission node selected, move your mouse into the Timeline (or Graph Editor), press A to select the yellow keyframes, and press Shift + E → Make Cyclic (F-Modifier).
+Press Spacebar—your multi-colored stone cracks will smoothly pulse bright and dim forever!
+4. Optional Bonus: Floating START & END Signs
+Click START_Sign_Glare_Mesh and open Object Properties (orange square icon on the right).
+At Frame 1, hover over Location Z (4.15 m) and press I.
+Go to Frame 50, type 4.45 into Location Z, and press I.
+Go to Frame 100, type 4.15 back into Location Z, and press I.
+Hover over the Timeline, press A, then Shift + E → Make Cyclic (F-Modifier) so the sign gently floats up and down forever.
