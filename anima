@@ -1,0 +1,116 @@
+All-in-One Blender Guide: Roblox Rigging, 3-Ending Maze Animation & GitHub Upload
+PART 1: Fast, Lag-Free Viewport Setup
+While Moving & Animating: Click the Solid Mode sphere (2nd circle at the top-right of the 3D Viewport). Because Texture color mode is set, you will still see all brick, tile, and wood textures with zero lag.
+To Preview Orb Glare: Click Material Preview (3rd circle), click the small down-arrow v next to the shading circles, and set Compositor to Always (or Disabled while editing so it never lags).
+Set Timeline Length: At the bottom-right of the Timeline, change End from 250 to 400.
+PART 2: Rigging Your Roblox Character (Rigid Blocky Limbs)
+Step 2.1 — Separate the 6 Body Blocks (If Imported as 1 Combined Mesh)
+Click the Roblox character and press Tab (Edit Mode).
+Press A (Select All), then press P → By Loose Parts.
+Press Tab back to Object Mode so Head, Torso, Left Arm, Right Arm, Left Leg, and Right Leg are separate blocks.
+Step 2.2 — Build the 6 Bones (Armature)
+Press Numpad 1 (Front View) and press Shift + A → Armature → Single Bone.
+Go to Object Data Properties (green running stick-figure icon on the right), open Viewport Display, and check [x] In Front.
+Press Tab (Edit Mode on the Armature):
+Torso Bone: Place the bottom ball at the waist and the top tip at the neck. Press F2 and name it Torso.
+Head Bone: Click the top tip of Torso and press E → Z to extrude straight up into the head. Name it Head.
+Arm.L & Arm.R Bones: Press Shift + A to add a bone. Place its thick ball (base) at the top shoulder joint and its pointy tip pointing down to the hand. Name it Arm.L, then duplicate (Shift + D → X) to the right arm and name it Arm.R.
+Leg.L & Leg.R Bones: Duplicate a bone (Shift + D), place its thick ball (base) at the hip joint (top of the leg) and its pointy tip pointing down to the foot. Name it Leg.L, then duplicate (Shift + D → X) to the right leg and name it Leg.R.
+Link Limb Bones to the Torso Bone:
+Still in Edit Mode, hold Shift and select Arm.L, Arm.R, Leg.L, and Leg.R, then Shift-click Torso last.
+Press Ctrl + P → Keep Offset.
+Step 2.3 — Attach the Blocky Body Parts to the Bones (Bone Parenting)
+
+(Do NOT use Automatic Weights, or the blocky arms and legs will bend like rubber!)
+
+Press Tab back to Object Mode.
+Click the Left Arm mesh, then Shift-click the Armature.
+Switch to Pose Mode (Ctrl + Tab), click the Arm.L bone, and press Ctrl + P → Bone.
+Press Ctrl + Tab back to Object Mode and repeat for:
+Right Arm → Arm.R
+Left Leg → Leg.L
+Right Leg → Leg.R
+Head → Head
+Torso → Torso
+Step 2.4 — Create an Automatic Running Loop (20 Frames)
+Click the Armature and enter Pose Mode (Ctrl + Tab).
+Frame 1: Rotate Leg.L and Arm.R forward (R → X → 35 → Enter). Rotate Leg.R and Arm.L backward (R → X → -35 → Enter). Press A (select all bones) and press I → Rotation.
+Frame 10: Flip them (Leg.L & Arm.R to -35°, Leg.R & Arm.L to +35°). Press A and I → Rotation.
+Frame 20: Copy the Frame 1 keyframes (Ctrl + C then Ctrl + V in the Timeline).
+Press A in the Timeline and press Shift + E → Make Cyclic (F-Modifier). Now his arms and legs run automatically for all 400 frames while you move the Armature in Object Mode!
+PART 3: Animating the 3 Maze Endings (Frames 1 – 400)
+
+Switch to Object Mode, select your Character Armature, and press Numpad 7 (Top View) to see the maze corridors from above.
+
+ENDING 1 (Frames 1 – 129): Finishes Without the Chest
+
+Story: Enters at Start, gets blocked by debris, skips the chest, and exits empty-handed.
+
+Frame 1 (Start Gate): Move the character to the front-left Start Gate (Z = 0). Press I → Location & Rotation.
+Frame 20: Move him (G → Shift + Z) down the first corridor (I → Location & Rotation).
+Frame 45 (Blocked by Debris): Move him right in front of Blocking_Corridor_Debris (I → Location & Rotation).
+At Frame 50 and Frame 55, rotate him (R → Z) left and right so he looks at the rubble and backs off.
+Frame 75: Move him along the detour corridor past the Treasure Chest room without going inside (I → Location & Rotation).
+Frame 95: Move him around the back-right corridor (I → Location & Rotation).
+Frame 120 (Exits Empty-Handed): Move him out the back-right Exit Gate (I → Location & Rotation).
+Frame 129 (Hold Before Reset): In the Timeline, click the Frame 120 keyframe, press Shift + D, and drag the copy to Frame 129.
+ENDING 2 (Frames 130 – 239): Cursed Jump (Trap_PowerUp_Orb) → Stuck in 4-Wall Box
+
+Story: Resets to Start, grabs the pink Trap_PowerUp_Orb, jumps over 1 wall into the sealed 4-wall prison cell (4, 2), and gets trapped!
+
+Frame 130 (Instant Teleport Back to Start):
+Move the playhead to Frame 130 (1 frame after 129 so he teleports cleanly without sliding through walls!).
+Move the character back to the Start Gate (Z = 0) and press I → Location & Rotation.
+Frame 150: Move him up the left corridor (I → Location & Rotation).
+Frame 170 (Touches Pink Trap_PowerUp_Orb):
+Move him onto Trap_PowerUp_Orb (I → Location & Rotation).
+Hide the Pink Orb on Pickup: Click Trap_PowerUp_Orb, press I → Scale at Frame 169, then at Frame 170 press S → 0 → Enter and I → Scale.
+Frame 182 (Peak of Cursed Jump Over 1 Wall):
+Select your character again. Move him halfway across the single wall behind the orb and lift him high in the air (G → Z → 2.7 → Enter) so he clears the 2.3m wall (I → Location & Rotation).
+Frame 195 (Lands Inside Sealed 4-Wall Trap Cell):
+Move him inside the sealed square room with Trapped_Box_Cell_Shards and bring him down to the floor (Z = 0, I → Location & Rotation).
+Frames 205 – 239 (Stuck Inside the Walls):
+Keyframe him bumping into the 4 sealed walls and turning around at Frames 205, 215, and 225.
+Duplicate (Shift + D) the Frame 225 keyframe to Frame 239.
+ENDING 3 (Frames 240 – 400): Invincibility Orb → Grabs Treasure_Chest → Overcomes All Traps!
+
+Story: Resets to Start, vaults the barricade, grabs the Cyan Invincibility Orb, picks up the Treasure_Chest, and barges through the spikes, swinging axe, and falling debris out the Exit!
+
+Frame 240 (Teleport Back to Start):
+Move your character back to the Start Gate (Z = 0) at Frame 240 (I → Location & Rotation).
+(Optional): Click Trap_PowerUp_Orb, press Alt + S at Frame 240 to restore its size, and press I → Scale.
+Frames 265 – 275 (Jumps Over Wooden_Barricade_Obstacle_1):
+Move him up to Wooden_Barricade_Obstacle_1 at Frame 265 (Z = 0), hop over it at Frame 270 (Z = 1.1m), and land on the other side at Frame 275 (Z = 0).
+Frame 285 (Grabs Cyan Invincibility_PowerUp_Orb):
+Move him onto Invincibility_PowerUp_Orb at Frame 285 (I → Location & Rotation).
+Click Invincibility_PowerUp_Orb, press I → Scale at Frame 284, then at Frame 285 press S → 0 → Enter and I → Scale.
+Frame 310 (Reaches & Picks Up Treasure_Chest Using Child Of):
+Move your character right next to Treasure_Chest at Frame 310 (I → Location & Rotation).
+Attach the Chest ONLY from Frame 310 onward:
+Click Treasure_Chest → go to Object Constraints Properties (blue gear-with-chain icon on the right).
+Click Add Object Constraint → Child Of and set Target to your Character Armature.
+Click Set Inverse.
+At Frame 309, set Influence = 0.000 and press I while hovering over Influence (keeps the chest on its pedestal during Endings 1 & 2!).
+At Frame 310, set Influence = 1.000 and press I over Influence.
+Frames 310 – 400 (Runs Invincible Through All Traps to the Exit):
+Frame 335: Move character straight across Spike_Trap_Spikes_2 (I → Location & Rotation).
+Frame 355: Move character straight through Swing_Trap_Pendulum_Blade (I → Location & Rotation).
+Frame 375: Jump over Wooden_Barricade_Obstacle_2 (Z = 1.1m at 375, Z = 0 at 382).
+Frame 400: Run out the Exit Gate carrying the Treasure_Chest (I → Location & Rotation)!
+PART 4: Animating the Traps & Power-Up Orb Glow
+Swinging Pendulum Axe (Swing_Trap_Pendulum_Blade):
+Click Swing_Trap_Pendulum_Blade → open Object Properties (orange square icon).
+Frame 1: Set Rotation Y = -40°, press I.
+Frame 20: Set Rotation Y = 40°, press I.
+Frame 40: Set Rotation Y = -40°, press I.
+In the Timeline, press A then Shift + E → Make Cyclic (F-Modifier) so the axe swings continuously!
+Floor Spikes Shooting Up (Spike_Trap_Spikes_2):
+Click Spike_Trap_Spikes_2.
+Frame 325: Location Z = -0.35 m (hidden inside floor), press I.
+Frame 332: Location Z = 0.08 m (spikes shoot up right as he runs over them invincible!), press I.
+Frame 350: Location Z = -0.35 m, press I.
+Falling Escape Debris (Escape_Debris_Rock_1 to 5):
+Select each rock: at Frame 315, move it up (G → Z → 2.6) and press I → Location.
+At Frame 328, move it down to the floor (Z = 0.22) and press I → Location.
+Pulsing Glare on the Power-Up Orbs (Optional):
+Click Invincibility_PowerUp_Orb (or Trap_PowerUp_Orb), open the Shader Editor, and keyframe Emission → Strength (4.5 at Frame 1 → 9.0 at Frame 20 → 4.5 at Frame 40, then Shift + E → Make Cyclic).
