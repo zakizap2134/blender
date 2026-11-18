@@ -1,48 +1,65 @@
 import java.util.*;
 
-/ 1. PROCESS DATA & SHARED HELPERS (Gantt Chart + Idle Time)
+// 1. PROCESS DATA & SHARED HELPERS
 class Process {
     static String IDLE = "Idle"; // Change idle label anytime (e.g. "Idle", "IDLE", "---")
+
     String id;
-    int at, bt, prio, rem, ct, tat, wt;
-    // With Priority (for Priority & Multilevel)
-    Process(String id, int at, int bt, int prio) {
-        this.id = id; this.at = at; this.bt = bt; this.prio = prio; this.rem = bt;
+    int at, bt, prio, queue, rem, ct, tat, wt;
+
+    // With Priority & Queue (each ID can be given its own queue)
+    Process(String id, int at, int bt, int prio, int queue) {
+        this.id = id; this.at = at; this.bt = bt; this.prio = prio; this.queue = queue; this.rem = bt;
     }
-    Process(int id, int at, int bt, int prio) { this("P" + id, at, bt, prio); }
+    Process(int id, int at, int bt, int prio, int queue) { this("P" + id, at, bt, prio, queue); }
+
+    // With Priority (for Priority & Multilevel)
+    Process(String id, int at, int bt, int prio) { this(id, at, bt, prio, 0); }
+    Process(int id, int at, int bt, int prio) { this("P" + id, at, bt, prio, 0); }
+
     // Without Priority (for FCFS, SJF, SRTF, Round Robin)
-    Process(String id, int at, int bt) { this(id, at, bt, 0); }
-    Process(int id, int at, int bt) { this("P" + id, at, bt, 0); }
-    // Logs 1 tick of CPU time (uses IDLE when CPU is free); returns 1 if finished
+    Process(String id, int at, int bt) { this(id, at, bt, 0, 0); }
+    Process(int id, int at, int bt) { this("P" + id, at, bt, 0, 0); }
+
+    // Logs 1 tick of CPU time; returns 1 if process finishes, 0 otherwise
     static int tick(Process c, int t, List<String> log) {
         log.add(c == null ? IDLE : c.id);
         if (c == null || --c.rem > 0) return 0;
         c.ct = t + 1; c.tat = c.ct - c.at; c.wt = c.tat - c.bt;
         return 1;
     }
-    // Prints Gantt chart (with Idle duration), table, averages, Idle Time & CPU Utilization
+
+    // Prints Gantt chart, table, averages, Idle Time, CPU utilization, and resets rem
     static void print(List<Process> list, String title, List<String> log) {
-        int time = log.size(), n = list.size();
+        print(list, title, log, null);
+    }
+
+    static void print(List<Process> list, String title, List<String> log, String[] order) {
         String gantt = "";
+        int time = log.size(), n = list.size();
         for (int t = 0, start = 0; t < time; t++) {
-            if (t == time - 1 || !log.get(t).equals(log.get(t + 1))) {
-                String lbl = log.get(t);
-                if (lbl.equals(IDLE)) lbl += "(" + (t + 1 - start) + ")";
-                gantt += "(" + start + ") | " + lbl + " | ";
+            String id = log.get(t);
+            int rem = -1;
+            for (Process p : list) if (p.id.equals(id)) rem = p.bt - ++p.rem;
+            if (t == time - 1 || !id.equals(log.get(t + 1))) {
+                gantt += "(" + start + ") | " + id + (rem >= 0 ? "(rem=" + rem + ")" : "") + " | ";
                 start = t + 1;
             }
         }
+
         double wt = 0, tat = 0, bt = 0;
         boolean hasPrio = list.stream().anyMatch(p -> p.prio != 0);
+
         System.out.println("\n=== " + title + " ===\nGantt Chart: " + gantt + "(" + time + ")");
-        System.out.println(hasPrio ? "ID\tAT\tBT\tPrio\tCT\tTAT\tWT" : "ID\tAT\tBT\tCT\tTAT\tWT");
+        System.out.println("ID\tAT\tBT" + (hasPrio ? "\tPrio" : "") + (order != null ? "\tQueue" : "") + "\tCT\tTAT\tWT");
         for (Process p : list) {
             bt += p.bt; tat += p.tat; wt += p.wt; p.rem = p.bt; // Auto-reset rem for next algorithm
-            if (hasPrio)
-                System.out.printf("%s\t%d\t%d\t%d\t%d\t%d\t%d\n", p.id, p.at, p.bt, p.prio, p.ct, p.tat, p.wt);
-            else
-                System.out.printf("%s\t%d\t%d\t%d\t%d\t%d\n", p.id, p.at, p.bt, p.ct, p.tat, p.wt);
+            System.out.println(p.id + "\t" + p.at + "\t" + p.bt
+                + (hasPrio ? "\t" + p.prio : "")
+                + (order != null ? "\tQ" + Multilevel.qLevel(p, order.length) : "")
+                + "\t" + p.ct + "\t" + p.tat + "\t" + p.wt);
         }
+
         int idle = time - (int) bt;
         System.out.printf("Avg WT : %.0f / %d = %.2f\nAvg TAT: %.0f / %d = %.2f\nIdle Time: %d | CPU Utilization: (%.0f / %d) * 100 = %.2f%%\n",
             wt, n, wt / n, tat, n, tat / n, idle, bt, time, (bt / time) * 100);
@@ -146,6 +163,7 @@ class Multilevel {
     void solve(List<Process> list, int q) {
         solve(list, q, "RR", "SRTF", "SJF", "FCFS"); // Default order
     }
+
     void solve(List<Process> list, int q, String... order) {
         if (order.length == 0) order = new String[]{"RR", "SRTF", "SJF", "FCFS"};
         int levels = order.length;
@@ -153,13 +171,16 @@ class Multilevel {
         List<Queue<Process>> rr = new ArrayList<>();
         for (int i = 0; i <= levels; i++) rr.add(new LinkedList<>());
         Process cur = null;
+
         for (int t = 0, done = 0, qt = 0; done < list.size(); t++) {
             int now = t;
+
             // 1. Add arrivals to their RR queue (for any queue configured as "RR")
             for (Process p : list) {
                 int ql = qLevel(p, levels);
                 if (p.at == t && order[ql - 1].equalsIgnoreCase("RR")) rr.get(ql).add(p);
             }
+
             // 2. RR time slice expiration
             if (cur != null) {
                 int curQ = qLevel(cur, levels);
@@ -168,6 +189,7 @@ class Multilevel {
                     cur = null;
                 }
             }
+
             // 3. Inter-queue Preemption: higher queue (smaller qLevel) preempts lower queue
             int curQ = (cur == null) ? Integer.MAX_VALUE : qLevel(cur, levels);
             boolean higherReady = list.stream().anyMatch(p -> p.at <= now && p.rem > 0 && qLevel(p, levels) < curQ);
@@ -175,6 +197,7 @@ class Multilevel {
                 if (cur != null && order[curQ - 1].equalsIgnoreCase("RR")) rr.get(curQ).add(cur);
                 cur = null;
             }
+
             // 4. Intra-queue Preemption for SRTF or PP
             if (cur != null) {
                 int qIdx = qLevel(cur, levels);
@@ -189,6 +212,7 @@ class Multilevel {
                         cur = null;
                 }
             }
+
             // 5. Queue Selection (picks highest ready queue priority first)
             if (cur == null) {
                 int bestQ = list.stream().filter(p -> p.at <= now && p.rem > 0)
@@ -213,36 +237,44 @@ class Multilevel {
                     }
                 }
             }
+
             if (cur != null && order[qLevel(cur, levels) - 1].equalsIgnoreCase("RR")) qt++;
             if (Process.tick(cur, t, log) == 1) { done++; cur = null; }
         }
-        Process.print(list, "Multilevel Queue " + Arrays.toString(order) + " (Q=" + q + ")", log);
+        Process.print(list, "Multilevel Queue " + Arrays.toString(order) + " (Q=" + q + ")", log, order);
     }
-    private int qLevel(Process p, int levels) {
-        return p.prio <= 0 ? levels : Math.min(p.prio, levels);
+
+    static int qLevel(Process p, int levels) {
+        int q = p.queue > 0 ? p.queue : p.prio;
+        return q <= 0 ? levels : Math.min(q, levels);
     }
 }
 
 // 9. MAIN CLASS (NO SCANNER - HARDCODED PROCESSES)
 public class Main {
     public static void main(String[] args) {
-        // Define your processes directly here:
+        Process.IDLE = "Idle"; // Change idle text in Gantt chart (e.g. "Idle", "IDLE", "---")
+
+        // Define processes (ID, AT, BT, Prio) or (ID, AT, BT, Prio, Queue):
+        // (Includes gaps before t=2 and at t=8..10 so Idle time shows in Gantt chart)
         List<Process> list = Arrays.asList(
-            new Process("A",  0, 8, 3), // (ID, AT, BT, Prio)
-            new Process("B",  1, 4, 1),
-            new Process(3,    2, 9, 4), // number ID automatically displays as "P3"
-            new Process("P4", 3, 5, 2)
+            new Process("A",   2, 4, 3),
+            new Process("B",   3, 2, 1),
+            new Process(3,    10, 5, 4), // displays as "P3"
+            new Process("P4", 11, 3, 2)
         );
 
-        int q = 3; // Quantum for Round Robin
+        int q = 3; // Time quantum for Round Robin & Multilevel
 
-        // Run any algorithm directly (just comment out any you don't need):
+        // Directly call whichever algorithms you want (comment out any you don't need):
         new FCFS().solve(list);
         new SJF().solve(list);
         new SRTF().solve(list);
         new PriorityNonPreemptive().solve(list);
         new PriorityPreemptive().solve(list);
         new RoundRobin().solve(list, q);
-        new Multilevel().solve(list, 2);
+
+        // Quick change: reorder queue names ("FCFS", "SJF", "SRTF", "RR", "PP", "NPP"):
+        new Multilevel().solve(list, 2, "FCFS", "SJF", "SRTF", "RR");
     }
 }
