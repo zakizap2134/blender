@@ -1,41 +1,41 @@
 import java.util.*;
 
-// 1. PROCESS DATA & SHARED HELPERS
+/ 1. PROCESS DATA & SHARED HELPERS (Gantt Chart + Idle Time)
 class Process {
+    static String IDLE = "Idle"; // Change idle label anytime (e.g. "Idle", "IDLE", "---")
     String id;
     int at, bt, prio, rem, ct, tat, wt;
-
     // With Priority (for Priority & Multilevel)
     Process(String id, int at, int bt, int prio) {
         this.id = id; this.at = at; this.bt = bt; this.prio = prio; this.rem = bt;
     }
     Process(int id, int at, int bt, int prio) { this("P" + id, at, bt, prio); }
-
     // Without Priority (for FCFS, SJF, SRTF, Round Robin)
     Process(String id, int at, int bt) { this(id, at, bt, 0); }
     Process(int id, int at, int bt) { this("P" + id, at, bt, 0); }
-
-    // Logs 1 tick of CPU time; returns 1 if process finishes, 0 otherwise
+    // Logs 1 tick of CPU time (uses IDLE when CPU is free); returns 1 if finished
     static int tick(Process c, int t, List<String> log) {
-        log.add(c == null ? "Idle" : c.id);
+        log.add(c == null ? IDLE : c.id);
         if (c == null || --c.rem > 0) return 0;
         c.ct = t + 1; c.tat = c.ct - c.at; c.wt = c.tat - c.bt;
         return 1;
     }
-
-    // Prints Gantt chart, table, averages, CPU utilization, and resets rem
+    // Prints Gantt chart (with Idle duration), table, averages, Idle Time & CPU Utilization
     static void print(List<Process> list, String title, List<String> log) {
-        String gantt = "";
-        for (int t = 0; t < log.size(); t++)
-            if (t == 0 || !log.get(t).equals(log.get(t - 1))) gantt += "(" + t + ") | " + log.get(t) + " | ";
-
         int time = log.size(), n = list.size();
+        String gantt = "";
+        for (int t = 0, start = 0; t < time; t++) {
+            if (t == time - 1 || !log.get(t).equals(log.get(t + 1))) {
+                String lbl = log.get(t);
+                if (lbl.equals(IDLE)) lbl += "(" + (t + 1 - start) + ")";
+                gantt += "(" + start + ") | " + lbl + " | ";
+                start = t + 1;
+            }
+        }
         double wt = 0, tat = 0, bt = 0;
         boolean hasPrio = list.stream().anyMatch(p -> p.prio != 0);
-
         System.out.println("\n=== " + title + " ===\nGantt Chart: " + gantt + "(" + time + ")");
         System.out.println(hasPrio ? "ID\tAT\tBT\tPrio\tCT\tTAT\tWT" : "ID\tAT\tBT\tCT\tTAT\tWT");
-
         for (Process p : list) {
             bt += p.bt; tat += p.tat; wt += p.wt; p.rem = p.bt; // Auto-reset rem for next algorithm
             if (hasPrio)
@@ -43,8 +43,9 @@ class Process {
             else
                 System.out.printf("%s\t%d\t%d\t%d\t%d\t%d\n", p.id, p.at, p.bt, p.ct, p.tat, p.wt);
         }
-        System.out.printf("Avg WT : %.0f / %d = %.2f\nAvg TAT: %.0f / %d = %.2f\nCPU Utilization: (%.0f / %d) * 100 = %.2f%%\n",
-            wt, n, wt / n, tat, n, tat / n, bt, time, (bt / time) * 100);
+        int idle = time - (int) bt;
+        System.out.printf("Avg WT : %.0f / %d = %.2f\nAvg TAT: %.0f / %d = %.2f\nIdle Time: %d | CPU Utilization: (%.0f / %d) * 100 = %.2f%%\n",
+            wt, n, wt / n, tat, n, tat / n, idle, bt, time, (bt / time) * 100);
     }
 }
 
@@ -140,65 +141,85 @@ class RoundRobin {
     }
 }
 
-// 8. MULTILEVEL QUEUE CLASS (Q1: RR, Q2: SRTF, Q3: Priority, Q4: SJF, Q5: FCFS)
+// 8. MULTILEVEL QUEUE CLASS (Pass any queue order in main: "FCFS", "SJF", "SRTF", "RR", "PP", "NPP")
 class Multilevel {
     void solve(List<Process> list, int q) {
+        solve(list, q, "RR", "SRTF", "SJF", "FCFS"); // Default order
+    }
+    void solve(List<Process> list, int q, String... order) {
+        if (order.length == 0) order = new String[]{"RR", "SRTF", "SJF", "FCFS"};
+        int levels = order.length;
         List<String> log = new ArrayList<>();
-        Queue<Process> q1 = new LinkedList<>();
+        List<Queue<Process>> rr = new ArrayList<>();
+        for (int i = 0; i <= levels; i++) rr.add(new LinkedList<>());
         Process cur = null;
-
         for (int t = 0, done = 0, qt = 0; done < list.size(); t++) {
             int now = t;
-
-            // 1. Add arrivals to Queue 1 (prio 1)
-            for (Process p : list) if (p.at == t && p.prio == 1) q1.add(p);
-
-            // RR time slice expiration
-            if (cur != null && cur.prio == 1 && qt == q) { q1.add(cur); cur = null; }
-
-            // Inter-queue Preemption: higher queue preempts lower queue
-            int curPrio = (cur == null) ? Integer.MAX_VALUE : cur.prio;
-            boolean higherReady = (!q1.isEmpty() && curPrio > 1)
-                || list.stream().anyMatch(p -> p.at <= now && p.rem > 0 && p.prio < curPrio);
-            if (higherReady) cur = null;
-
-            // Intra-queue Preemption for Queue 2 (SRTF): shorter remaining time preempts current Q2 process
-            if (cur != null && cur.prio == 2) {
-                boolean shorterQ2 = list.stream().anyMatch(p -> p.at <= now && p.rem > 0 && p.prio == 2 && p.rem < cur.rem);
-                if (shorterQ2) cur = null;
+            // 1. Add arrivals to their RR queue (for any queue configured as "RR")
+            for (Process p : list) {
+                int ql = qLevel(p, levels);
+                if (p.at == t && order[ql - 1].equalsIgnoreCase("RR")) rr.get(ql).add(p);
             }
-
-            // 2. Queue Selection by Level (Q1 -> Q2 -> Q3 -> Q4 -> Q5)
-            if (cur == null) {
-                if (!q1.isEmpty()) {
-                    cur = q1.poll();
-                    qt = 0;
-                } else {
-                    // Queue 2 (prio 2): SRTF (Shortest Remaining Time)
-                    cur = list.stream().filter(p -> p.at <= now && p.rem > 0 && p.prio == 2)
-                              .min(Comparator.comparingInt((Process p) -> p.rem).thenComparingInt(p -> p.at)).orElse(null);
-
-                    // Queue 3 (prio 3): Priority Scheduling
-                    if (cur == null)
-                        cur = list.stream().filter(p -> p.at <= now && p.rem > 0 && p.prio == 3)
-                                  .min(Comparator.comparingInt((Process p) -> p.at)).orElse(null);
-
-                    // Queue 4 (prio 4): SJF (Shortest Burst Time)
-                    if (cur == null)
-                        cur = list.stream().filter(p -> p.at <= now && p.rem > 0 && p.prio == 4)
-                                  .min(Comparator.comparingInt((Process p) -> p.bt).thenComparingInt(p -> p.at)).orElse(null);
-
-                    // Queue 5 (prio >= 5): FCFS (First-Come First-Served)
-                    if (cur == null)
-                        cur = list.stream().filter(p -> p.at <= now && p.rem > 0 && p.prio >= 5)
-                                  .min(Comparator.comparingInt(p -> p.at)).orElse(null);
+            // 2. RR time slice expiration
+            if (cur != null) {
+                int curQ = qLevel(cur, levels);
+                if (order[curQ - 1].equalsIgnoreCase("RR") && qt == q) {
+                    rr.get(curQ).add(cur);
+                    cur = null;
                 }
             }
-
-            if (cur != null && cur.prio == 1) qt++;
+            // 3. Inter-queue Preemption: higher queue (smaller qLevel) preempts lower queue
+            int curQ = (cur == null) ? Integer.MAX_VALUE : qLevel(cur, levels);
+            boolean higherReady = list.stream().anyMatch(p -> p.at <= now && p.rem > 0 && qLevel(p, levels) < curQ);
+            if (higherReady) {
+                if (cur != null && order[curQ - 1].equalsIgnoreCase("RR")) rr.get(curQ).add(cur);
+                cur = null;
+            }
+            // 4. Intra-queue Preemption for SRTF or PP
+            if (cur != null) {
+                int qIdx = qLevel(cur, levels);
+                String algo = order[qIdx - 1].toUpperCase();
+                if (algo.equals("SRTF")) {
+                    int curRem = cur.rem;
+                    if (list.stream().anyMatch(p -> p.at <= now && p.rem > 0 && qLevel(p, levels) == qIdx && p.rem < curRem))
+                        cur = null;
+                } else if (algo.equals("PP")) {
+                    int curPrio = cur.prio;
+                    if (list.stream().anyMatch(p -> p.at <= now && p.rem > 0 && qLevel(p, levels) == qIdx && p.prio < curPrio))
+                        cur = null;
+                }
+            }
+            // 5. Queue Selection (picks highest ready queue priority first)
+            if (cur == null) {
+                int bestQ = list.stream().filter(p -> p.at <= now && p.rem > 0)
+                                .mapToInt(p -> qLevel(p, levels)).min().orElse(-1);
+                if (bestQ != -1) {
+                    String algo = order[bestQ - 1].toUpperCase();
+                    if (algo.equals("RR")) {
+                        cur = rr.get(bestQ).poll();
+                        qt = 0;
+                    } else if (algo.equals("SRTF")) {
+                        cur = list.stream().filter(p -> p.at <= now && p.rem > 0 && qLevel(p, levels) == bestQ)
+                                  .min(Comparator.comparingInt((Process p) -> p.rem).thenComparingInt(p -> p.at)).orElse(null);
+                    } else if (algo.equals("SJF")) {
+                        cur = list.stream().filter(p -> p.at <= now && p.rem > 0 && qLevel(p, levels) == bestQ)
+                                  .min(Comparator.comparingInt((Process p) -> p.bt).thenComparingInt(p -> p.at)).orElse(null);
+                    } else if (algo.equals("PP") || algo.equals("NPP")) {
+                        cur = list.stream().filter(p -> p.at <= now && p.rem > 0 && qLevel(p, levels) == bestQ)
+                                  .min(Comparator.comparingInt((Process p) -> p.prio).thenComparingInt(p -> p.at)).orElse(null);
+                    } else { // FCFS
+                        cur = list.stream().filter(p -> p.at <= now && p.rem > 0 && qLevel(p, levels) == bestQ)
+                                  .min(Comparator.comparingInt(p -> p.at)).orElse(null);
+                    }
+                }
+            }
+            if (cur != null && order[qLevel(cur, levels) - 1].equalsIgnoreCase("RR")) qt++;
             if (Process.tick(cur, t, log) == 1) { done++; cur = null; }
         }
-        Process.print(list, "Multilevel Queue (Q1: RR[Q=" + q + "], Q2: SRTF, Q3: Prio, Q4: SJF, Q5: FCFS)", log);
+        Process.print(list, "Multilevel Queue " + Arrays.toString(order) + " (Q=" + q + ")", log);
+    }
+    private int qLevel(Process p, int levels) {
+        return p.prio <= 0 ? levels : Math.min(p.prio, levels);
     }
 }
 
